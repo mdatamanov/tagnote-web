@@ -4,6 +4,8 @@
 
 ## Технологический стек
 
+Техническое задание - https://docs.google.com/document/d/15QSEWcP95njOxAOgagKuKnFzyLInbdvVVZtWAfC08Xg/edit?tab=t.0
+
 - Java 21
 - Spring Boot 4.0.6
 - Spring Security + JWT
@@ -21,7 +23,7 @@
 
 ```bash
 # Клонирование репозитория
-git clone https://github.com/ВАШ_НИК/tagnote-web.git
+git clone https://github.com/mdatamanov/tagnote-web.git
 
 # Переход в папку проекта
 cd tagnote-web
