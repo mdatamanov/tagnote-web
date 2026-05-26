@@ -5,7 +5,7 @@
 ## Технологический стек
 
 - Java 21
-- Spring Boot 3.2.x
+- Spring Boot 4.0.6
 - Spring Security + JWT
 - Spring Data JPA (Hibernate)
 - PostgreSQL
