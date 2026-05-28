@@ -1,7 +1,7 @@
 package com.tagnote.web.controller;
 
-import com.tagnote.web.entities.Tag;
-import com.tagnote.web.entities.User;
+import com.tagnote.web.entity.Tag;
+import com.tagnote.web.entity.User;
 import com.tagnote.web.service.TagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

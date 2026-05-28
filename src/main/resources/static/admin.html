@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>TagNote - Админ панель</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: #2d3748;
+            color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #e2e8f0;
+        }
+        .note-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .note-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .note-content {
+            margin-bottom: 10px;
+        }
+        .note-meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .tag {
+            background: #e2e8f0;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-right: 5px;
+            display: inline-block;
+        }
+        .active { color: green; font-weight: bold; }
+        .blocked { color: red; font-weight: bold; }
+        .delete-btn { background: #f56565; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; }
+        .block-btn { background: #ed8936; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; }
+        .logout-btn { background: #a0aec0; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 5px; }
+        .dashboard-btn { background: #4299e1; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 5px; margin-right: 10px; }
+        .menu-btn { background: #667eea; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
+        .menu-btn:hover { background: #5a67d8; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>👑 Админ панель</h2>
+    <div>
+        <button class="dashboard-btn" onclick="location.href='/dashboard.html'">📝 Мои заметки</button>
+        <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
+    </div>
+</div>
+
+<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <button class="menu-btn" onclick="showUsers()">👥 Пользователи</button>
+    <button class="menu-btn" onclick="showNotes()">📄 Все заметки</button>
+    <button class="menu-btn" onclick="showTags()">🏷️ Все теги</button>
+    <button class="menu-btn" onclick="showStats()">📊 Статистика</button>
+</div>
+
+
+<div id="usersSection">
+    <h3>👥 Пользователи</h3>
+    <div id="usersList">Загрузка...</div>
+</div>
+
+
+<div id="notesSection" style="display: none;">
+    <h3>📄 Все заметки системы</h3>
+    <div id="notesList">Загрузка...</div>
+</div>
+
+
+<div id="tagsSection" style="display: none;">
+    <h3>🏷️ Все теги системы</h3>
+    <div id="tagsList">Загрузка...</div>
+</div>
+
+
+<div id="statsSection" style="display: none;">
+    <h3>📊 Статистика системы</h3>
+    <div id="stats" style="display: flex; gap: 20px; flex-wrap: wrap;"></div>
+</div>
+
+<script>
+    async function showUsers() {
+        document.getElementById('usersSection').style.display = 'block';
+        document.getElementById('notesSection').style.display = 'none';
+        document.getElementById('tagsSection').style.display = 'none';
+        document.getElementById('statsSection').style.display = 'none';
+
+        const response = await fetch('/api/admin/users?page=0&size=50');
+        const data = await response.json();
+
+        let html = '<table><thead><tr><th>ID</th><th>Логин</th><th>Email</th><th>Роль</th><th>Статус</th><th>Действия</th></tr></thead><tbody>';
+        for (let user of data.content) {
+            html += `<tr>
+                    <td>${user.id}</td>
+                    <td>${escapeHtml(user.username)}</td>
+                    <td>${escapeHtml(user.email)}</td>
+                    <td>${user.role === 'ROLE_ADMIN' ? '👑 Админ' : '👤 Пользователь'}</td>
+                    <td class="${user.enabled ? 'active' : 'blocked'}">${user.enabled ? 'Активен' : 'Заблокирован'}</td>
+                    <td>
+                        <button class="block-btn" onclick="toggleBlock(${user.id}, ${!user.enabled})">${user.enabled ? '🔒 Блок' : '🔓 Разблок'}</button>
+                        <button class="delete-btn" onclick="deleteUser(${user.id})">🗑️ Удалить</button>
+                    </td>
+                </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('usersList').innerHTML = html;
+    }
+
+    async function showNotes() {
+        document.getElementById('usersSection').style.display = 'none';
+        document.getElementById('notesSection').style.display = 'block';
+        document.getElementById('tagsSection').style.display = 'none';
+        document.getElementById('statsSection').style.display = 'none';
+
+        const response = await fetch('/api/admin/notes?page=0&size=50');
+        const data = await response.json();
+
+        if (!data.content || data.content.length === 0) {
+            document.getElementById('notesList').innerHTML = '<p>Нет заметок</p>';
+            return;
+        }
+
+        let html = '';
+        for (let note of data.content) {
+            let tagsHtml = '';
+            if (note.tags && note.tags.length > 0) {
+                for (let tag of note.tags) {
+                    tagsHtml += '<span class="tag">' + escapeHtml(tag.name) + '</span>';
+                }
+            }
+
+            html += `
+                    <div class="note-card">
+                        <div class="note-title">📝 ${escapeHtml(note.title)}</div>
+                        <div class="note-content">${escapeHtml(note.content || '')}</div>
+                        <div>${tagsHtml}</div>
+                        <div class="note-meta">
+                            👤 ${escapeHtml(note.owner?.username || 'Неизвестно')} |
+                            📅 ${new Date(note.updatedAt).toLocaleString()}
+                        </div>
+                        <button class="delete-btn" onclick="deleteNote(${note.id})" style="margin-top: 10px;">🗑️ Удалить заметку</button>
+                    </div>
+                `;
+        }
+        document.getElementById('notesList').innerHTML = html;
+    }
+
+    async function showTags() {
+        document.getElementById('usersSection').style.display = 'none';
+        document.getElementById('notesSection').style.display = 'none';
+        document.getElementById('tagsSection').style.display = 'block';
+        document.getElementById('statsSection').style.display = 'none';
+
+        const response = await fetch('/api/admin/tags');
+        if (response.ok) {
+            const tags = await response.json();
+
+            if (!tags || tags.length === 0) {
+                document.getElementById('tagsList').innerHTML = '<p>Нет тегов</p>';
+                return;
+            }
+
+            let html = '<table><thead><tr><th>ID</th><th>Название тега</th><th>Владелец</th><th>Действия</th></tr></thead><tbody>';
+            for (let tag of tags) {
+                html += `
+                        <tr>
+                            <td>${tag.id}</td>
+                            <td><span class="tag">${escapeHtml(tag.name)}</span></td>
+                            <td>${escapeHtml(tag.owner?.username || 'Неизвестно')}</td>
+                            <td><button class="delete-btn" onclick="deleteAnyTag(${tag.id})">🗑️ Удалить</button></td>
+                        </tr>
+                    `;
+            }
+            html += '</tbody></tr>';
+            document.getElementById('tagsList').innerHTML = html;
+        }
+    }
+
+    async function showStats() {
+        document.getElementById('usersSection').style.display = 'none';
+        document.getElementById('notesSection').style.display = 'none';
+        document.getElementById('tagsSection').style.display = 'none';
+        document.getElementById('statsSection').style.display = 'block';
+
+        const usersRes = await fetch('/api/admin/users?page=0&size=1');
+        const notesRes = await fetch('/api/admin/notes?page=0&size=1');
+        const tagsRes = await fetch('/api/tags');
+
+        const usersData = await usersRes.json();
+        const notesData = await notesRes.json();
+        const tags = await tagsRes.json();
+
+        document.getElementById('stats').innerHTML = `
+                <div style="background: #667eea; color: white; padding: 20px; border-radius: 10px; min-width: 150px;">
+                    <h3>👥 Пользователей</h3>
+                    <p style="font-size: 32px;">${usersData.totalElements || 0}</p>
+                </div>
+                <div style="background: #48bb78; color: white; padding: 20px; border-radius: 10px; min-width: 150px;">
+                    <h3>📄 Заметок</h3>
+                    <p style="font-size: 32px;">${notesData.totalElements || 0}</p>
+                </div>
+                <div style="background: #ed8936; color: white; padding: 20px; border-radius: 10px; min-width: 150px;">
+                    <h3>🏷️ Тегов</h3>
+                    <p style="font-size: 32px;">${tags.length || 0}</p>
+                </div>
+                <div style="background: #f56565; color: white; padding: 20px; border-radius: 10px; min-width: 150px;">
+                    <h3>📊 Среднее</h3>
+                    <p style="font-size: 32px;">${usersData.totalElements > 0 ? (notesData.totalElements / usersData.totalElements).toFixed(1) : 0}</p>
+                </div>
+            `;
+    }
+
+
+    async function toggleBlock(id, enable) {
+        await fetch('/api/admin/users/' + id + '/block', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({enabled: enable})
+        });
+        showUsers();
+    }
+
+
+    async function deleteUser(id) {
+        if (confirm('Удалить пользователя? Все его заметки и теги будут удалены!')) {
+            await fetch('/api/admin/users/' + id, {method: 'DELETE'});
+            showUsers();
+        }
+    }
+
+    async function deleteNote(id) {
+        if (confirm('Удалить эту заметку?')) {
+            await fetch('/api/admin/notes/' + id, {method: 'DELETE'});
+            showNotes();
+        }
+    }
+    async function deleteAnyTag(id) {
+        if (confirm('Удалить этот тег? Он будет удалён из всех заметок.')) {
+            const response = await fetch('/api/admin/tags/' + id, {method: 'DELETE'});
+            if (response.ok) {
+                alert('✅ Тег удалён');
+                showTags();
+            } else {
+                alert('❌ Ошибка удаления тега');
+            }
+        }
+    }
+
+    async function logout() {
+        await fetch('/api/auth/logout', {method: 'POST'});
+        window.location.href = '/login.html';
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    showUsers();
+</script>
+</body>
+</html>

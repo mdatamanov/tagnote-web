@@ -1,6 +1,6 @@
-package com.tagnote.web.entities;
+package com.tagnote.web.entity;
 
-import com.tagnote.web.entities.enums.ROLE;
+import com.tagnote.web.entity.enums.ROLE;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

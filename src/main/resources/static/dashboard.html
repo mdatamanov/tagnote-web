@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>TagNote - Мои заметки</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: #4a5568;
+            color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logout-btn {
+            background: #a0aec0;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .note-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .tag {
+            background: #e2e8f0;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-right: 5px;
+            display: inline-block;
+        }
+        .tag-filter {
+            background: #e2e8f0;
+            padding: 5px 12px;
+            margin: 3px;
+            border-radius: 15px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .tag-filter.active {
+            background: #667eea;
+            color: white;
+        }
+        input, textarea {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            max-width: 400px;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .edit-btn { background: #4299e1; color: white; border: none; }
+        .delete-btn { background: #f56565; color: white; border: none; }
+        .search-box { width: 300px; padding: 8px; }
+        hr { margin: 20px 0; }
+        select { padding: 8px; margin: 5px 0; }
+        .tag-checkbox { margin-right: 5px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h2>📝 Мои заметки</h2>
+    <div>
+        <button id="adminBtn" style="display: none; background: #2d3748; color: white; border: none; padding: 8px 15px; margin-right: 10px; border-radius: 5px; cursor: pointer;" onclick="location.href='/admin.html'">👑 Админ панель</button>
+        <button class="logout-btn" onclick="logout()">🚪 Выйти</button>
+    </div>
+</div>
+
+<div style="display: flex; gap: 30px; flex-wrap: wrap;">
+    <div style="flex: 1;">
+        <h3>➕ Создать заметку</h3>
+        <input type="text" id="noteTitle" placeholder="Заголовок"><br>
+        <textarea id="noteContent" rows="3" placeholder="Содержимое"></textarea><br>
+
+        <div style="margin: 10px 0;">
+            <label><strong>Выберите теги:</strong></label>
+            <div id="availableTags" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;"></div>
+        </div>
+
+        <button onclick="createNote()">Создать заметку</button>
+    </div>
+
+    <div style="flex: 1;">
+        <h3>🏷️ Создать тег</h3>
+        <input type="text" id="tagName" placeholder="Название тега"><br>
+        <button onclick="createTag()">Создать тег</button>
+    </div>
+</div>
+
+<div style="margin: 20px 0;">
+    <h3>📋 Мои теги</h3>
+    <div id="myTagsList" style="margin-top: 10px;"></div>
+</div>
+
+<hr>
+
+<div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+    <div style="flex: 2;">
+        <h3>🔍 Поиск</h3>
+        <input type="text" id="searchInput" class="search-box" placeholder="Поиск по заметкам..." onkeyup="searchNotes()">
+    </div>
+    <div style="flex: 1;">
+        <h3>📅 Сортировка</h3>
+        <select id="sortOrder" onchange="changeSortOrder()">
+            <option value="desc">Сначала новые</option>
+            <option value="asc">Сначала старые</option>
+        </select>
+    </div>
+</div>
+
+<div style="margin: 15px 0;">
+    <strong>📌 Фильтр по тегам:</strong>
+    <div id="tagsFilter"></div>
+</div>
+
+<hr>
+
+<h3>📄 Мои заметки</h3>
+<div id="notesList">Загрузка...</div>
+
+<script>
+    let currentFilterTag = null;
+    let sortOrder = 'desc';
+
+    fetch('/api/auth/me')
+        .then(response => response.json())
+        .then(user => {
+            if (user.role === 'ROLE_ADMIN') {
+                document.getElementById('adminBtn').style.display = 'inline-block';
+            }
+        })
+        .catch(() => window.location.href = '/login.html');
+
+    async function loadNotes() {
+        let url = '/api/notes?page=0&size=50&sort=updatedAt,' + sortOrder;
+        if (currentFilterTag) {
+            url = '/api/notes/filter?tags=' + encodeURIComponent(currentFilterTag) + '&page=0&size=50&sort=updatedAt,' + sortOrder;
+        }
+
+        const response = await fetch(url);
+        if (response.ok) {
+            const data = await response.json();
+            displayNotes(data.content || data);
+        }
+    }
+
+    function changeSortOrder() {
+        sortOrder = document.getElementById('sortOrder').value;
+        loadNotes();
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'Дата не указана';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Дата не указана';
+        return date.toLocaleString('ru-RU');
+    }
+
+    function displayNotes(notes) {
+        const container = document.getElementById('notesList');
+        if (!notes || notes.length === 0) {
+            container.innerHTML = '<p style="color: #999;">📭 Нет заметок. Создайте первую!</p>';
+            return;
+        }
+
+        let html = '';
+        for (let note of notes) {
+            let tagsHtml = '';
+            if (note.tags && note.tags.length > 0) {
+                for (let tag of note.tags) {
+                    tagsHtml += '<span class="tag">' + escapeHtml(tag.name) + '</span>';
+                }
+            }
+
+            html += '<div class="note-card">';
+            html += '<h3>' + escapeHtml(note.title) + '</h3>';
+            html += '<p>' + escapeHtml(note.content || '') + '</p>';
+            html += '<div>' + tagsHtml + '</div>';
+            html += '<small>📅 ' + formatDate(note.updatedAt) + '</small><br><br>';
+            html += '<button class="edit-btn" onclick="editNote(' + note.id + ')">✏️ Редактировать</button>';
+            html += '<button class="delete-btn" onclick="deleteNote(' + note.id + ')">🗑️ Удалить</button>';
+            html += '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    async function loadTags() {
+        const response = await fetch('/api/tags');
+        if (response.ok) {
+            const tags = await response.json();
+            const container = document.getElementById('tagsFilter');
+            let html = '<span class="tag-filter' + (!currentFilterTag ? ' active' : '') + '" onclick="filterByTag(null)">Все</span>';
+            for (let tag of tags) {
+                html += '<span class="tag-filter' + (currentFilterTag === tag.name ? ' active' : '') + '" onclick="filterByTag(\'' + escapeHtml(tag.name) + '\')">' + escapeHtml(tag.name) + '</span>';
+            }
+            container.innerHTML = html;
+        }
+    }
+
+    async function loadAvailableTags() {
+        const response = await fetch('/api/tags');
+        if (response.ok) {
+            const tags = await response.json();
+            const container = document.getElementById('availableTags');
+
+            if (!tags || tags.length === 0) {
+                container.innerHTML = '<p style="color: #999;">Нет тегов. Создайте тег сначала!</p>';
+                return;
+            }
+
+            let html = '';
+            for (let tag of tags) {
+                html += `
+                        <label style="display: inline-flex; align-items: center; gap: 5px; background: #e2e8f0; padding: 5px 12px; border-radius: 20px; cursor: pointer;">
+                            <input type="checkbox" class="tag-checkbox" value="${escapeHtml(tag.name)}">
+                            ${escapeHtml(tag.name)}
+                        </label>
+                    `;
+            }
+            container.innerHTML = html;
+        }
+    }
+
+    async function loadMyTags() {
+        const response = await fetch('/api/tags');
+        if (response.ok) {
+            const tags = await response.json();
+            const container = document.getElementById('myTagsList');
+
+            if (!tags || tags.length === 0) {
+                container.innerHTML = '<p style="color: #999;">У вас пока нет тегов</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
+            for (let tag of tags) {
+                html += '<div style="background: #e2e8f0; padding: 8px 15px; border-radius: 20px; display: inline-flex; align-items: center; gap: 10px;">';
+                html += '<span>' + escapeHtml(tag.name) + '</span>';
+                html += '<button onclick="renameTag(' + tag.id + ', \'' + escapeHtml(tag.name) + '\')" style="background: #4299e1; color: white; border: none; padding: 3px 8px; border-radius: 10px; cursor: pointer;">✏️</button>';
+                html += '<button onclick="deleteTag(' + tag.id + ')" style="background: #f56565; color: white; border: none; padding: 3px 8px; border-radius: 10px; cursor: pointer;">🗑️</button>';
+                html += '</div>';
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+    }
+
+    async function renameTag(id, oldName) {
+        const newName = prompt('Введите новое название тега:', oldName);
+        if (newName && newName !== oldName) {
+            const response = await fetch('/api/tags/' + id, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: newName})
+            });
+
+            if (response.ok) {
+                alert('Тег переименован');
+                loadMyTags();
+                loadTags();
+                loadAvailableTags();
+            } else {
+                alert('Ошибка переименования');
+            }
+        }
+    }
+
+    async function deleteTag(id) {
+        if (confirm('Удалить тег? Он будет удалён из всех заметок.')) {
+            const response = await fetch('/api/tags/' + id, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert('Тег удалён');
+                loadMyTags();
+                loadTags();
+                loadAvailableTags();
+                loadNotes();
+            } else {
+                alert('Ошибка удаления тега');
+            }
+        }
+    }
+
+    function filterByTag(tagName) {
+        currentFilterTag = tagName;
+        loadNotes();
+        loadTags();
+    }
+
+    async function searchNotes() {
+        const term = document.getElementById('searchInput').value;
+        if (term.length < 2) {
+            loadNotes();
+            return;
+        }
+        const response = await fetch('/api/notes/search?term=' + encodeURIComponent(term));
+        if (response.ok) {
+            const data = await response.json();
+            displayNotes(data.content || data);
+        }
+    }
+
+    async function createNote() {
+        const title = document.getElementById('noteTitle').value;
+        const content = document.getElementById('noteContent').value;
+
+        const checkboxes = document.querySelectorAll('.tag-checkbox:checked');
+        const tags = Array.from(checkboxes).map(cb => cb.value);
+
+        if (!title) {
+            alert('Введите заголовок');
+            return;
+        }
+
+        const response = await fetch('/api/notes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title, content, tags})
+        });
+
+        if (response.ok) {
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+            document.querySelectorAll('.tag-checkbox:checked').forEach(cb => cb.checked = false);
+            loadNotes();
+            loadMyTags();
+            loadTags();
+            loadAvailableTags();
+            alert('Заметка создана');
+        } else {
+            alert('Ошибка создания');
+        }
+    }
+
+    async function createTag() {
+        const name = document.getElementById('tagName').value;
+        if (!name) {
+            alert('Введите название тега');
+            return;
+        }
+
+        const response = await fetch('/api/tags', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name})
+        });
+
+        if (response.ok) {
+            document.getElementById('tagName').value = '';
+            loadMyTags();
+            loadTags();
+            loadAvailableTags();
+            alert('Тег создан');
+        } else {
+            alert('Ошибка создания тега');
+        }
+    }
+
+    async function editNote(id) {
+        const response = await fetch('/api/notes/' + id);
+        if (response.ok) {
+            const note = await response.json();
+            const newTitle = prompt('Новый заголовок:', note.title);
+            if (newTitle !== null) {
+                const newContent = prompt('Новое содержимое:', note.content);
+                const newTags = prompt('Теги (через запятую):', note.tags?.map(t => t.name).join(', ') || '');
+                const tags = newTags ? newTags.split(',').map(t => t.trim()).filter(t => t) : [];
+
+                const updateResponse = await fetch('/api/notes/' + id, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title: newTitle, content: newContent, tags})
+                });
+
+                if (updateResponse.ok) {
+                    loadNotes();
+                    loadMyTags();
+                    loadTags();
+                    alert('Заметка обновлена');
+                }
+            }
+        }
+    }
+
+    async function deleteNote(id) {
+        if (confirm('Удалить заметку?')) {
+            await fetch('/api/notes/' + id, {method: 'DELETE'});
+            loadNotes();
+            loadMyTags();
+            loadTags();
+            alert('Заметка удалена');
+        }
+    }
+
+    async function logout() {
+        await fetch('/api/auth/logout', {method: 'POST'});
+        window.location.href = '/login.html';
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    loadNotes();
+    loadTags();
+    loadMyTags();
+    loadAvailableTags();
+</script>
+</body>
+</html>

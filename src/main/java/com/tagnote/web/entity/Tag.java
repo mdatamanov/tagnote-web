@@ -1,4 +1,4 @@
-package com.tagnote.web.entities;
+package com.tagnote.web.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

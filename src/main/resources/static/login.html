@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+</head>
+<body>
+<h1>Вход в систему</h1>
+<p>
+    <a href="/admin.html">Войти как администратор</a>
+</p>
+
+<form action="/api/auth/login" method="post">
+    <div>
+        <label>Логин:</label><br>
+        <input type="text" name="username" required>
+    </div>
+    <br>
+    <div>
+        <label>Пароль:</label><br>
+        <input type="password" name="password" required>
+    </div>
+    <br>
+    <button type="submit">Войти</button>
+    <a href="/register.html">Регистрация</a>
+</form>
+</body>
+</html>

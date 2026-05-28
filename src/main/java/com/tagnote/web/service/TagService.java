@@ -1,9 +1,11 @@
 package com.tagnote.web.service;
 
-import com.tagnote.web.entities.Tag;
-import com.tagnote.web.entities.User;
+import com.tagnote.web.entity.Tag;
+import com.tagnote.web.entity.User;
 import com.tagnote.web.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -12,33 +14,65 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TagService {
 
+    private static final Logger log = LoggerFactory.getLogger(TagService.class);
+
     private final TagRepository tagRepository;
 
     @Transactional
     public Tag createTag(User owner, String name) {
-        if(tagRepository.existsByNameAndOwner(name, owner)){
+        log.info("Создание тега '{}' пользователем {}", name, owner.getUsername());
+
+        if (tagRepository.existsByNameAndOwner(name, owner)) {
+            log.warn("Тег '{}' уже существует у пользователя {}", name, owner.getUsername());
             throw new RuntimeException("Tag already exists");
         }
+
         Tag tag = new Tag();
-        tag.setOwner(owner);
         tag.setName(name);
-        return tagRepository.save(tag);
+        tag.setOwner(owner);
+
+        Tag savedTag = tagRepository.save(tag);
+        log.info("Тег создан: ID={}, имя='{}'", savedTag.getId(), name);
+
+        return savedTag;
     }
 
     public List<Tag> getUserTags(User owner) {
+        log.debug("Получение всех тегов пользователя {}", owner.getUsername());
         return tagRepository.findByOwner(owner);
     }
 
     @Transactional
     public Tag renameTag(User owner, Long tagId, String newName) {
-        Tag tag = tagRepository.findByIdAndOwner(tagId, owner).orElseThrow(() -> new RuntimeException("tag not found"));
+        log.info("Переименование тега ID={} пользователем {} в '{}'", tagId, owner.getUsername(), newName);
+
+        Tag tag = tagRepository.findByIdAndOwner(tagId, owner)
+                .orElseThrow(() -> {
+                    log.warn("Тег не найден: ID={}", tagId);
+                    return new RuntimeException("Tag not found");
+                });
+
+        String oldName = tag.getName();
         tag.setName(newName);
-        return tagRepository.save(tag);
+
+        Tag savedTag = tagRepository.save(tag);
+        log.info("Тег переименован: '{}' -> '{}'", oldName, newName);
+
+        return savedTag;
     }
 
     @Transactional
     public void deleteTag(User owner, Long tagId) {
-        Tag tag =  tagRepository.findByIdAndOwner(tagId, owner).orElseThrow(() -> new RuntimeException("tag not found"));
+        log.info("Удаление тега ID={} пользователем {}", tagId, owner.getUsername());
+
+        Tag tag = tagRepository.findByIdAndOwner(tagId, owner)
+                .orElseThrow(() -> {
+                    log.warn("Тег не найден для удаления: ID={}", tagId);
+                    return new RuntimeException("Tag not found");
+                });
+
+        String tagName = tag.getName();
         tagRepository.delete(tag);
+        log.info("Тег удалён: ID={}, имя='{}'", tagId, tagName);
     }
 }

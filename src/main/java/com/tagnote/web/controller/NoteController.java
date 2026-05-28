@@ -1,13 +1,12 @@
 package com.tagnote.web.controller;
 
-import com.tagnote.web.entities.Note;
-import com.tagnote.web.entities.User;
+import com.tagnote.web.entity.Note;
+import com.tagnote.web.entity.User;
 import com.tagnote.web.service.NoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.*;
 
 @RestController
@@ -63,11 +62,24 @@ public class NoteController {
     }
 
     @PutMapping("/{id}")
-    public Map<String, Object> updateNote(@AuthenticationPrincipal User currentUser, @PathVariable Long id, @RequestBody Map<String, Object> request) {
+    public Map<String, Object> updateNote(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
 
         String title = (String) request.get("title");
         String content = (String) request.get("content");
-        @SuppressWarnings("unchecked") Set<String> tagNames = (Set<String>) request.get("tags");
+
+        Set<String> tagNames = new HashSet<>();
+        Object tagsObj = request.get("tags");
+        if (tagsObj instanceof List) {
+            List<?> tagsList = (List<?>) tagsObj;
+            for (Object tag : tagsList) {
+                if (tag instanceof String) {
+                    tagNames.add((String) tag);
+                }
+            }
+        }
 
         Note note = noteService.updateNote(currentUser, id, title, content, tagNames);
 

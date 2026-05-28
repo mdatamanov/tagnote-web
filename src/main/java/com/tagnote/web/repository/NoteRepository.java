@@ -1,8 +1,8 @@
 package com.tagnote.web.repository;
 
-import com.tagnote.web.entities.Note;
-import com.tagnote.web.entities.Tag;
-import com.tagnote.web.entities.User;
+import com.tagnote.web.entity.Note;
+import com.tagnote.web.entity.Tag;
+import com.tagnote.web.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,7 +16,6 @@ import java.util.Set;
 @Repository
 public interface NoteRepository extends JpaRepository<Note, Long> {
 
-    // Базовые методы
     Page<Note> findByOwner(User owner, Pageable pageable);
 
     Optional<Note> findByIdAndOwner(Long id, User owner);
@@ -25,19 +24,16 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
 
     boolean existsByIdAndOwner(Long id, User owner);
 
-    // Поиск по тегам (содержит хотя бы один из указанных)
     @Query("SELECT DISTINCT n FROM Note n LEFT JOIN n.tags t WHERE n.owner = :owner AND t IN :tags")
     Page<Note> findByOwnerAndTagsIn(@Param("owner") User owner,
                                     @Param("tags") Set<Tag> tags,
                                     Pageable pageable);
 
-    // Поиск по точному совпадению тега
     @Query("SELECT DISTINCT n FROM Note n JOIN n.tags t WHERE n.owner = :owner AND t = :tag")
     Page<Note> findByOwnerAndTag(@Param("owner") User owner,
                                  @Param("tag") Tag tag,
                                  Pageable pageable);
 
-    // Поиск по подстроке в заголовке или содержании - ИСПРАВЛЕННЫЙ МЕТОД
     @Query("SELECT n FROM Note n WHERE n.owner = :owner AND " +
             "(LOWER(n.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(n.content) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")

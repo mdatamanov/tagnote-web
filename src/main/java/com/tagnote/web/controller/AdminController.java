@@ -1,9 +1,9 @@
 package com.tagnote.web.controller;
 
-import com.tagnote.web.entities.Note;
-import com.tagnote.web.entities.Tag;
-import com.tagnote.web.entities.User;
-import com.tagnote.web.entities.enums.ROLE;
+import com.tagnote.web.entity.Note;
+import com.tagnote.web.entity.Tag;
+import com.tagnote.web.entity.User;
+import com.tagnote.web.entity.enums.ROLE;
 import com.tagnote.web.repository.NoteRepository;
 import com.tagnote.web.repository.TagRepository;
 import com.tagnote.web.repository.UserRepository;
@@ -85,19 +85,16 @@ public class AdminController {
         return response;
     }
 
-    // Получить пользователя по ID
     @GetMapping("/users/{id}")
     public User getUserById(@PathVariable Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    // Обновить пользователя
     @PutMapping("/users/{id}")
     public User updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
         if (updates.containsKey("email")) {
             user.setEmail((String) updates.get("email"));
         }
@@ -107,13 +104,22 @@ public class AdminController {
         if (updates.containsKey("enabled")) {
             user.setEnabled((Boolean) updates.get("enabled"));
         }
-
         return userRepository.save(user);
     }
 
-    // Получить все теги (для статистики)
     @GetMapping("/tags")
     public List<Tag> getAllTags() {
         return tagRepository.findAll();
+    }
+
+    @DeleteMapping("/tags/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String, String> deleteAnyTag(@PathVariable Long id) {
+        tagRepository.deleteById(id);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("success", "true");
+        response.put("message", "Tag deleted successfully");
+        return response;
     }
 }
