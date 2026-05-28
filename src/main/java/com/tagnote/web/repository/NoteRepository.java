@@ -6,6 +6,8 @@ import com.tagnote.web.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -14,24 +16,32 @@ import java.util.Set;
 @Repository
 public interface NoteRepository extends JpaRepository<Note, Long> {
 
-    /**
-     * Получить все заметки пользователя (с пагинацией и сортировкой)
-     */
+    // Базовые методы
     Page<Note> findByOwner(User owner, Pageable pageable);
 
-    /**
-     * Получить заметку по id с проверкой пользователя
-     */
     Optional<Note> findByIdAndOwner(Long id, User owner);
 
-    /**
-     * Удалить заметку по id с проверкой пользователя
-     */
     void deleteByIdAndOwner(Long id, User owner);
 
     boolean existsByIdAndOwner(Long id, User owner);
 
-    Page<Note> findByOwnerAndTagsIn(User owner, Set<Tag> tags, Pageable pageable);
+    // Поиск по тегам (содержит хотя бы один из указанных)
+    @Query("SELECT DISTINCT n FROM Note n LEFT JOIN n.tags t WHERE n.owner = :owner AND t IN :tags")
+    Page<Note> findByOwnerAndTagsIn(@Param("owner") User owner,
+                                    @Param("tags") Set<Tag> tags,
+                                    Pageable pageable);
 
-    Page<Note> searchByTitleOrContent(User owner, String searchTerm, Pageable pageable);
+    // Поиск по точному совпадению тега
+    @Query("SELECT DISTINCT n FROM Note n JOIN n.tags t WHERE n.owner = :owner AND t = :tag")
+    Page<Note> findByOwnerAndTag(@Param("owner") User owner,
+                                 @Param("tag") Tag tag,
+                                 Pageable pageable);
+
+    // Поиск по подстроке в заголовке или содержании - ИСПРАВЛЕННЫЙ МЕТОД
+    @Query("SELECT n FROM Note n WHERE n.owner = :owner AND " +
+            "(LOWER(n.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(n.content) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<Note> searchByTitleOrContent(@Param("owner") User owner,
+                                      @Param("searchTerm") String searchTerm,
+                                      Pageable pageable);
 }

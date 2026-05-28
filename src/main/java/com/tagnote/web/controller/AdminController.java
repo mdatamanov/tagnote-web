@@ -1,8 +1,11 @@
 package com.tagnote.web.controller;
 
 import com.tagnote.web.entities.Note;
+import com.tagnote.web.entities.Tag;
 import com.tagnote.web.entities.User;
+import com.tagnote.web.entities.enums.ROLE;
 import com.tagnote.web.repository.NoteRepository;
+import com.tagnote.web.repository.TagRepository;
 import com.tagnote.web.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,6 +24,7 @@ public class AdminController {
 
     private final UserRepository userRepository;
     private final NoteRepository noteRepository;
+    private final TagRepository tagRepository;
 
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
@@ -78,5 +83,37 @@ public class AdminController {
         response.put("message", "Note deleted successfully by admin");
 
         return response;
+    }
+
+    // Получить пользователя по ID
+    @GetMapping("/users/{id}")
+    public User getUserById(@PathVariable Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    // Обновить пользователя
+    @PutMapping("/users/{id}")
+    public User updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (updates.containsKey("email")) {
+            user.setEmail((String) updates.get("email"));
+        }
+        if (updates.containsKey("role")) {
+            user.setRole(ROLE.valueOf((String) updates.get("role")));
+        }
+        if (updates.containsKey("enabled")) {
+            user.setEnabled((Boolean) updates.get("enabled"));
+        }
+
+        return userRepository.save(user);
+    }
+
+    // Получить все теги (для статистики)
+    @GetMapping("/tags")
+    public List<Tag> getAllTags() {
+        return tagRepository.findAll();
     }
 }

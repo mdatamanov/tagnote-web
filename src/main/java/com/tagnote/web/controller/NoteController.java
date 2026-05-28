@@ -8,9 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/notes")
@@ -20,11 +18,24 @@ public class NoteController {
     private final NoteService noteService;
 
     @PostMapping
-    public Map<String, Object> createNote(@AuthenticationPrincipal User currentUser, @RequestBody Map<String, Object> request) {
+    public Map<String, Object> createNote(
+            @AuthenticationPrincipal User currentUser,
+            @RequestBody Map<String, Object> request) {
 
         String title = (String) request.get("title");
         String content = (String) request.get("content");
-        @SuppressWarnings("unchecked") Set<String> tagNames = (Set<String>) request.get("tags");
+
+        // Преобразуем List в Set
+        Set<String> tagNames = new HashSet<>();
+        Object tagsObj = request.get("tags");
+        if (tagsObj instanceof List) {
+            List<?> tagsList = (List<?>) tagsObj;
+            for (Object tag : tagsList) {
+                if (tag instanceof String) {
+                    tagNames.add((String) tag);
+                }
+            }
+        }
 
         Note note = noteService.createNote(currentUser, title, content, tagNames);
 
