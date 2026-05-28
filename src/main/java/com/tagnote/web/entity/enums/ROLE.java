@@ -1,4 +1,4 @@
-package com.tagnote.web.entities.enums;
+package com.tagnote.web.entity.enums;
 
 public enum ROLE {
     ROLE_ADMIN,

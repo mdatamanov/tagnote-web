@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="004-create-note-tags-table" author="tagnote">
+        <createTable tableName="note_tags">
+            <column name="note_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tag_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey
+                tableName="note_tags"
+                columnNames="note_id, tag_id"
+                constraintName="pk_note_tags"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_note_tags_note"
+                baseTableName="note_tags"
+                baseColumnNames="note_id"
+                referencedTableName="notes"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                constraintName="fk_note_tags_tag"
+                baseTableName="note_tags"
+                baseColumnNames="tag_id"
+                referencedTableName="tags"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+    </changeSet>
+
+</databaseChangeLog>
