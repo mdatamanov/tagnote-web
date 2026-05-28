@@ -19,9 +19,7 @@ public class TagController {
     private final TagService tagService;
 
     @PostMapping
-    public Map<String, Object> createTag(
-            @AuthenticationPrincipal User currentUser,
-            @RequestBody Map<String, String> request) {
+    public Map<String, Object> createTag(@AuthenticationPrincipal User currentUser, @RequestBody Map<String, String> request) {
 
         String name = request.get("name");
         Tag tag = tagService.createTag(currentUser, name);
@@ -41,10 +39,7 @@ public class TagController {
     }
 
     @PutMapping("/{id}")
-    public Map<String, Object> renameTag(
-            @AuthenticationPrincipal User currentUser,
-            @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
+    public Map<String, Object> renameTag(@AuthenticationPrincipal User currentUser, @PathVariable Long id, @RequestBody Map<String, String> request) {
 
         String newName = request.get("name");
         Tag tag = tagService.renameTag(currentUser, id, newName);
@@ -59,9 +54,7 @@ public class TagController {
     }
 
     @DeleteMapping("/{id}")
-    public Map<String, String> deleteTag(
-            @AuthenticationPrincipal User currentUser,
-            @PathVariable Long id) {
+    public Map<String, String> deleteTag(@AuthenticationPrincipal User currentUser, @PathVariable Long id) {
 
         tagService.deleteTag(currentUser, id);
 

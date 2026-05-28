@@ -9,10 +9,10 @@ import java.util.Map;
 @RestController
 public class HealthController {
     @GetMapping("/health")
-    public Map<String, String> healthCheck(){
-        Map<String,String> map = new HashMap<>();
-        map.put("status","OK");
-        map.put("message","tagNote WEB is running");
+    public Map<String, String> healthCheck() {
+        Map<String, String> map = new HashMap<>();
+        map.put("status", "OK");
+        map.put("message", "tagNote WEB is running");
         return map;
     }
 }

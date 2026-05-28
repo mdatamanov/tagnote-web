@@ -20,14 +20,11 @@ public class NoteController {
     private final NoteService noteService;
 
     @PostMapping
-    public Map<String, Object> createNote(
-            @AuthenticationPrincipal User currentUser,
-            @RequestBody Map<String, Object> request) {
+    public Map<String, Object> createNote(@AuthenticationPrincipal User currentUser, @RequestBody Map<String, Object> request) {
 
         String title = (String) request.get("title");
         String content = (String) request.get("content");
-        @SuppressWarnings("unchecked")
-        Set<String> tagNames = (Set<String>) request.get("tags");
+        @SuppressWarnings("unchecked") Set<String> tagNames = (Set<String>) request.get("tags");
 
         Note note = noteService.createNote(currentUser, title, content, tagNames);
 
@@ -43,32 +40,23 @@ public class NoteController {
     }
 
     @GetMapping
-    public Page<Note> getUserNotes(
-            @AuthenticationPrincipal User currentUser,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    public Page<Note> getUserNotes(@AuthenticationPrincipal User currentUser, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
 
         return noteService.getUserNotes(currentUser, page, size);
     }
 
     @GetMapping("/{id}")
-    public Note getNoteById(
-            @AuthenticationPrincipal User currentUser,
-            @PathVariable Long id) {
+    public Note getNoteById(@AuthenticationPrincipal User currentUser, @PathVariable Long id) {
 
         return noteService.getNoteById(currentUser, id);
     }
 
     @PutMapping("/{id}")
-    public Map<String, Object> updateNote(
-            @AuthenticationPrincipal User currentUser,
-            @PathVariable Long id,
-            @RequestBody Map<String, Object> request) {
+    public Map<String, Object> updateNote(@AuthenticationPrincipal User currentUser, @PathVariable Long id, @RequestBody Map<String, Object> request) {
 
         String title = (String) request.get("title");
         String content = (String) request.get("content");
-        @SuppressWarnings("unchecked")
-        Set<String> tagNames = (Set<String>) request.get("tags");
+        @SuppressWarnings("unchecked") Set<String> tagNames = (Set<String>) request.get("tags");
 
         Note note = noteService.updateNote(currentUser, id, title, content, tagNames);
 
@@ -84,9 +72,7 @@ public class NoteController {
     }
 
     @DeleteMapping("/{id}")
-    public Map<String, String> deleteNote(
-            @AuthenticationPrincipal User currentUser,
-            @PathVariable Long id) {
+    public Map<String, String> deleteNote(@AuthenticationPrincipal User currentUser, @PathVariable Long id) {
 
         noteService.deleteNote(currentUser, id);
 
@@ -98,21 +84,13 @@ public class NoteController {
     }
 
     @GetMapping("/filter")
-    public Page<Note> filterByTags(
-            @AuthenticationPrincipal User currentUser,
-            @RequestParam Set<String> tags,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    public Page<Note> filterByTags(@AuthenticationPrincipal User currentUser, @RequestParam Set<String> tags, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
 
         return noteService.filterByTags(currentUser, tags, page, size);
     }
 
     @GetMapping("/search")
-    public Page<Note> searchNotes(
-            @AuthenticationPrincipal User currentUser,
-            @RequestParam String term,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    public Page<Note> searchNotes(@AuthenticationPrincipal User currentUser, @RequestParam String term, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
 
         return noteService.searchNotes(currentUser, term, page, size);
     }
