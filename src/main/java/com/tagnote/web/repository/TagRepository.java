@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface TagRepository extends JpaRepository<Tag, Long> {
@@ -33,4 +34,7 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      * @return
      */
     boolean existsByNameAndOwner(String name, User owner);
+
+    Optional<Tag> findByNameAndOwner(String name, User owner);
+    List<Tag> findByNameInAndOwner(Set<String> names, User owner);
 }
